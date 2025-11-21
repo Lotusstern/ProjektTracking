@@ -15,7 +15,7 @@ COCO80 = [
 
 # === Umschalten für deinen Test ===
 TARGET_CLASS = "sports ball"       # später zurück auf "sports ball"
-DEBUG_SHOW_ANY = False         # zeigt notfalls die beste beliebige Klasse
+DEBUG_SHOW_ANY = True         # zeigt notfalls die beste beliebige Klasse
 
 def _letterbox(img, new_size=640, color=(114,114,114)):
     h, w = img.shape[:2]
