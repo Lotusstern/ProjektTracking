@@ -1,0 +1,9 @@
+camera_id: 1
+imgsz: 640
+conf: 0.25
+iou: 0.5
+mqtt:
+  host: 127.0.0.1
+  port: 1883
+  topic: tracker/ball
+log_level: INFO
