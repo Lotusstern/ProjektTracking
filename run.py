@@ -44,9 +44,11 @@ if __name__ == "__main__":
         pass
 
     # Inference-Skipping: nur jedes N-te Frame inferieren
-    INFER_EVERY = 2   # 2 = jedes zweite Frame; bei Bedarf 3 testen
-    frame_idx   = 0
-    last_res    = None
+    INFER_EVERY_DEFAULT = 2   # 2 = jedes zweite Frame; bei Bedarf 3 testen
+    skip_enabled        = True
+    infer_every         = INFER_EVERY_DEFAULT
+    frame_idx           = 0
+    last_res            = None
 
     fps = 0.0
     fps_counter = 0
@@ -61,7 +63,7 @@ if __name__ == "__main__":
         frame_idx += 1
 
         # Nur jedes N-te Frame inferieren (Tracking-by-Detection)
-        if (frame_idx % INFER_EVERY) == 0:
+        if (frame_idx % infer_every) == 0:
             last_res = det.detect_ball(frame)
         res = last_res
 
@@ -85,12 +87,20 @@ if __name__ == "__main__":
             fps_t0 = now
 
         # HUD
-        hud = f"FPS:{fps:.1f} | imgsz:{imgsz} | skip:{INFER_EVERY} | 640x480 MJPG"
+        skip_txt = f"{infer_every} (on)" if skip_enabled else "off"
+        hud = f"FPS:{fps:.1f} | imgsz:{imgsz} | skip:{skip_txt} | 640x480 MJPG"
         cv2.putText(frame, hud, (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
         cv2.imshow("AI Ball Tracker (ESC beendet)", frame)
-        if cv2.waitKey(1) & 0xFF == 27:  # ESC
+        key = cv2.waitKey(1) & 0xFF
+        if key == 27:  # ESC
             break
+        if key in (ord('s'), ord('S')):
+            skip_enabled = not skip_enabled
+            infer_every = INFER_EVERY_DEFAULT if skip_enabled else 1
+            frame_idx = 0  # sauber neu zählen für modulo
+            state = "aktiviert" if skip_enabled else "deaktiviert"
+            print(f"[i] Frame-Skipping {state} (jede {infer_every}. Frame)")
 
     cap.release()
     cv2.destroyAllWindows()
