@@ -49,6 +49,8 @@ if __name__ == "__main__":
     last_res    = None
 
     fps = 0.0
+    fps_counter = 0
+    fps_t0 = time.time()
     print("[i] Start – ESC schließt Fenster.")
     while True:
         ok, frame = cap.read()
@@ -56,7 +58,6 @@ if __name__ == "__main__":
             print("[WARN] Frame capture fehlgeschlagen.")
             break
 
-        t0 = time.time()
         frame_idx += 1
 
         # Nur jedes N-te Frame inferieren (Tracking-by-Detection)
@@ -75,9 +76,13 @@ if __name__ == "__main__":
 
 
         # FPS glätten (Exponentielles Mittel)
-        dt  = max(time.time() - t0, 1e-6)
-        inst_fps = 1.0 / dt
-        fps = 0.9 * fps + 0.1 * inst_fps
+        # FPS über echte Zeitbasis zählen (robust trotz Frame-Skipping)
+        fps_counter += 1
+        now = time.time()
+        if now - fps_t0 >= 1.0:
+            fps = fps_counter / (now - fps_t0)
+            fps_counter = 0
+            fps_t0 = now
 
         # HUD
         hud = f"FPS:{fps:.1f} | imgsz:{imgsz} | skip:{INFER_EVERY} | 640x480 MJPG"
