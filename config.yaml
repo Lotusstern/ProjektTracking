@@ -7,3 +7,9 @@ mqtt:
   port: 1883
   topic: tracker/ball
 log_level: INFO
+influx:
+  enabled: false
+  url: http://localhost:8086
+  org: example-org
+  bucket: detections
+  token: your-token-here
