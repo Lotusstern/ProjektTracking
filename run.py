@@ -1,5 +1,6 @@
 # run.py
-import os, sys, time, cv2, yaml, requests
+import os, sys, time, cv2, yaml
+import importlib
 from detector_onnx import YoloOnnxDetector
 
 
@@ -9,6 +10,12 @@ def _escape_tag(value: str) -> str:
 
 class InfluxLineClient:
     def __init__(self, url: str, org: str, bucket: str, token: str):
+        spec = importlib.util.find_spec("requests")
+        if spec is None:
+            raise ModuleNotFoundError(
+                "Influx logging requires the 'requests' package. Install it or disable Influx in config.yaml."
+            )
+        self._requests = importlib.import_module("requests")
         base = url.rstrip("/")
         self.write_url = f"{base}/api/v2/write"
         self.params = {"org": org, "bucket": bucket, "precision": "ns"}
@@ -26,7 +33,7 @@ class InfluxLineClient:
             f"{time.time_ns()}"
         )
         try:
-            resp = requests.post(self.write_url, params=self.params, data=line, headers=self.headers, timeout=2)
+            resp = self._requests.post(self.write_url, params=self.params, data=line, headers=self.headers, timeout=2)
             if not resp.ok:
                 print(f"[WARN] Influx write failed: {resp.status_code} {resp.text[:200]}")
         except Exception as e:
