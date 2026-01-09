@@ -13,8 +13,8 @@ COCO80 = [
  "hair drier","toothbrush"
 ]
 
-# === Umschalten für deinen Test ===
-TARGET_CLASS = "sports ball"       # später zurück auf "sports ball"
+# === Umschalten für Test ===
+TARGET_CLASS = "sports ball"       # Hier wird die Zielklasse bestimmt.
 DEBUG_SHOW_ANY = True         # zeigt notfalls die beste beliebige Klasse
 
 def _letterbox(img, new_size=640, color=(114,114,114)):
@@ -58,7 +58,7 @@ class YoloOnnxDetector:
         self.conf_thres = float(conf_thres)
         self.iou_thres  = float(iou_thres)
 
-        # Warm-up (beschleunigt erste echte Inferenz)
+        # Warm-up
         dummy = np.zeros((1,3,self.imgsz,self.imgsz), np.float32)
         _ = self.session.run(None, {self.inp_name: dummy})
 
@@ -107,8 +107,8 @@ class YoloOnnxDetector:
         else:
             return None
 
-        # --- Skala prüfen: sind Boxen wahrscheinlich normalisiert? ---
-        # Heuristik: Wenn median(w) sehr klein (< 2), dann *wahrscheinlich* 0..1 skaliert.
+        # --- Skala prüfen ---
+        
         if np.median(boxes_xywh[:,2]) <= 2.0:
             boxes_xywh = boxes_xywh * float(self.imgsz)
 
