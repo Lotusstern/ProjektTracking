@@ -19,15 +19,15 @@ def load_cfg(path="config.yaml"):
 if __name__ == "__main__":
     cfg     = load_cfg()
     cam_id  = int(cfg.get("camera_id", 1))
-    imgsz   = int(cfg.get("imgsz", 320))      # <= kleiner = schneller (z.B. 320)
-    conf_th = float(cfg.get("conf", 0.25))    # etwas sensibler
+    imgsz   = int(cfg.get("imgsz", 320))      
+    conf_th = float(cfg.get("conf", 0.25))    
     iou_th  = float(cfg.get("iou", 0.5))
 
     model_path = os.path.join("models", "yolov8n.onnx")
     print(f"[i] Lade Modell: {model_path} | imgsz={imgsz} conf={conf_th} iou={iou_th}")
     det = YoloOnnxDetector(model_path, imgsz=imgsz, conf_thres=conf_th, iou_thres=iou_th)
 
-    # Kamera öffnen – MSMF ist bei dir stabil. MJPG spart USB-Bandbreite.
+    # Kamera öffnen
     print(f"[i] Öffne Kamera {cam_id} (MSMF) ...")
     cap = cv2.VideoCapture(cam_id, cv2.CAP_MSMF)
     if not cap.isOpened():
@@ -37,14 +37,14 @@ if __name__ == "__main__":
     cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
     cap.set(cv2.CAP_PROP_FRAME_WIDTH,  640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    # (optional) kleine Buffergröße, falls Treiber unterstützt:
+    
     try:
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     except Exception:
         pass
 
     # Inference-Skipping: nur jedes N-te Frame inferieren
-    INFER_EVERY_DEFAULT = 2   # 2 = jedes zweite Frame; bei Bedarf 3 testen
+    INFER_EVERY_DEFAULT = 2   # 2 = jedes zweite Frame
     skip_enabled        = True
     infer_every         = INFER_EVERY_DEFAULT
     frame_idx           = 0
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
         frame_idx += 1
 
-        # Nur jedes N-te Frame inferieren (Tracking-by-Detection)
+        
         if (frame_idx % infer_every) == 0:
             last_res = det.detect_ball(frame)
         res = last_res
@@ -77,8 +77,8 @@ if __name__ == "__main__":
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
 
-        # FPS glätten (Exponentielles Mittel)
-        # FPS über echte Zeitbasis zählen (robust trotz Frame-Skipping)
+        # FPS glätten
+        # FPS über echte Zeitbasis zählen
         fps_counter += 1
         now = time.time()
         if now - fps_t0 >= 1.0:
