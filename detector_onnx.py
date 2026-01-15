@@ -14,7 +14,7 @@ COCO80 = [
 ]
 
 # === Umschalten für Test ===
-TARGET_CLASS = "sports ball"       # Hier wird die Zielklasse bestimmt.
+TARGET_CLASS = "person"       # Hier wird die Zielklasse bestimmt.
 DEBUG_SHOW_ANY = True         # zeigt notfalls die beste beliebige Klasse
 
 def _letterbox(img, new_size=640, color=(114,114,114)):
