@@ -8,7 +8,7 @@ mqtt:
   topic: tracker/ball
 log_level: INFO
 influx:
-  enabled: false
+  enabled: true
   url: http://localhost:8086
   org: Berufskolleg
   bucket: Tracking
