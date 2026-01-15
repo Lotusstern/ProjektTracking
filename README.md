@@ -2,7 +2,7 @@
 
 ## InfluxDB-Logging aktivieren
 
-1. Für das Influx-Logging wird das optionale Paket `requests` benötigt (`pip install requests`).
+1. Optional kannst du `requests` installieren (`pip install requests`). Falls es fehlt, nutzt das Script automatisch `urllib` aus der Standardbibliothek.
 
 2. In `config.yaml` den Block `influx` anpassen. Beispiel:
 

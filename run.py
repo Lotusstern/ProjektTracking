@@ -1,6 +1,9 @@
 # run.py
 import os, sys, time, cv2, yaml
 import importlib
+import importlib.util
+import urllib.error
+import urllib.request
 from detector_onnx import YoloOnnxDetector
 
 
@@ -11,11 +14,10 @@ def _escape_tag(value: str) -> str:
 class InfluxLineClient:
     def __init__(self, url: str, org: str, bucket: str, token: str):
         spec = importlib.util.find_spec("requests")
-        if spec is None:
-            raise ModuleNotFoundError(
-                "Influx logging requires the 'requests' package. Install it or disable Influx in config.yaml."
-            )
-        self._requests = importlib.import_module("requests")
+        self._requests = None
+        self._use_urllib = spec is None
+        if not self._use_urllib:
+            self._requests = importlib.import_module("requests")
         base = url.rstrip("/")
         self.write_url = f"{base}/api/v2/write"
         self.params = {"org": org, "bucket": bucket, "precision": "ns"}
@@ -33,9 +35,28 @@ class InfluxLineClient:
             f"{time.time_ns()}"
         )
         try:
-            resp = self._requests.post(self.write_url, params=self.params, data=line, headers=self.headers, timeout=2)
-            if not resp.ok:
-                print(f"[WARN] Influx write failed: {resp.status_code} {resp.text[:200]}")
+            if self._use_urllib:
+                url = f"{self.write_url}?org={self.params['org']}&bucket={self.params['bucket']}&precision=ns"
+                req = urllib.request.Request(
+                    url,
+                    data=line.encode("utf-8"),
+                    headers=self.headers,
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=2) as resp:
+                    if resp.status >= 400:
+                        body = resp.read(200).decode("utf-8", errors="replace")
+                        print(f"[WARN] Influx write failed: {resp.status} {body}")
+            else:
+                resp = self._requests.post(
+                    self.write_url,
+                    params=self.params,
+                    data=line,
+                    headers=self.headers,
+                    timeout=2,
+                )
+                if not resp.ok:
+                    print(f"[WARN] Influx write failed: {resp.status_code} {resp.text[:200]}")
         except Exception as e:
             print(f"[WARN] Influx write error: {e}")
 
