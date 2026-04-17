@@ -12,8 +12,10 @@ influx:
   url: http://localhost:8086
   org: example-org
   bucket: detections
-  token: <Token mit Schreibrechten>
+  token: "" # optional, besser über INFLUX_TOKEN
 ```
+
+> Sicherheit: Lege Tokens bevorzugt als Umgebungsvariable ab (`INFLUX_TOKEN`) statt im Repository.
 
 3. Script starten (`python run.py`). Bei aktiven Erkennungen wird pro neuem Inferenz-Ergebnis eine Zeile im Measurement `detections` geschrieben:
 
@@ -22,6 +24,21 @@ detections,camera_id=1,label=sports\ ball x=123i,y=240i,r=18i,score=0.87 1699999
 ```
 
 4. In InfluxDB/Grafana können Zeitstrahlen oder Scatterplots mit den Feldern `x`, `y`, `r`, `score` nach `camera_id`/`label` gefiltert werden.
+
+## Kamera- und Klassenkonfiguration
+
+Zusätzliche Parameter in `config.yaml`:
+
+- `camera_backend`: `auto`, `msmf`, `dshow`, `v4l2`, `gstreamer`
+  - `auto` ist plattformneutral und empfohlen.
+- `target_class`: beliebige COCO-Klasse, z. B. `sports ball`, `person`, `dog`.
+
+Beispiel:
+
+```yaml
+camera_backend: auto
+target_class: sports ball
+```
 
 ## Grafana + InfluxDB Integration (Schritt-für-Schritt)
 

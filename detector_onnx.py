@@ -14,7 +14,7 @@ COCO80 = [
 ]
 
 # === Umschalten für Test ===
-TARGET_CLASS = "person"       # Hier wird die Zielklasse bestimmt.
+TARGET_CLASS = "sports ball"  # Fallback-Zielklasse, wenn nichts im Config gesetzt ist.
 DEBUG_SHOW_ANY = True         # zeigt notfalls die beste beliebige Klasse
 
 def _letterbox(img, new_size=640, color=(114,114,114)):
@@ -29,7 +29,7 @@ def _letterbox(img, new_size=640, color=(114,114,114)):
     return canvas, scale, left, top
 
 class YoloOnnxDetector:
-    def __init__(self, model_path: str, imgsz: int = 640, conf_thres: float = 0.35, iou_thres: float = 0.50):
+    def __init__(self, model_path: str, imgsz: int = 640, conf_thres: float = 0.35, iou_thres: float = 0.50, target_class: str = TARGET_CLASS):
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model missing: {model_path}")
 
@@ -63,7 +63,11 @@ class YoloOnnxDetector:
         _ = self.session.run(None, {self.inp_name: dummy})
 
         # Zielklasse vorbereiten
-        self.target_idx = COCO80.index(TARGET_CLASS)
+        if target_class not in COCO80:
+            print(f"[WARN] target_class='{target_class}' ist unbekannt. Nutze '{TARGET_CLASS}'.")
+            target_class = TARGET_CLASS
+        self.target_class = target_class
+        self.target_idx = COCO80.index(target_class)
 
     def _nms_first(self, boxes_xywh, scores):
         # boxes: [x1,y1,w,h] (letterbox coords, float), scores: (N,)
@@ -134,7 +138,7 @@ class YoloOnnxDetector:
             bx1, by1, bw, bh = nms_boxes[pick]
             bx2, by2 = bx1 + bw, by1 + bh
             sc = float(sel_sc[pick])
-            cls_name = COCO80[self.target_idx]
+            cls_name = self.target_class
 
         # --- Pfad 2: Debug-Fallback – beste beliebige Klasse zeigen ---
         elif DEBUG_SHOW_ANY:
