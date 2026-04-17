@@ -41,25 +41,43 @@ class InfluxLineClient:
             print(f"[WARN] Influx write error: {e}")
 
 def load_cfg(path="config.yaml"):
+    defaults = {
+        "camera_id": 1,
+        "imgsz": 320,
+        "conf": 0.25,
+        "iou": 0.5,
+        "camera_backend": "auto",
+        "target_class": "sports ball",
+        "mqtt": {"host": "127.0.0.1", "port": 1883, "topic": "tracker/ball"},
+        "log_level": "INFO",
+        "influx": {
+            "enabled": False,
+            "url": "http://localhost:8086",
+            "org": "example-org",
+            "bucket": "detections",
+            "token": ""
+        }
+    }
     if not os.path.exists(path):
         print("[WARN] config.yaml nicht gefunden – nutze Defaultwerte.")
-        return {
-            "camera_id": 1,
-            "imgsz": 320,
-            "conf": 0.25,
-            "iou": 0.5,
-            "mqtt": {"host": "127.0.0.1", "port": 1883, "topic": "tracker/ball"},
-            "log_level": "INFO",
-            "influx": {
-                "enabled": False,
-                "url": "http://localhost:8086",
-                "org": "example-org",
-                "bucket": "detections",
-                "token": ""
-            }
-        }
+        return defaults
     with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        loaded = yaml.safe_load(f) or {}
+
+    cfg = {**defaults, **loaded}
+    cfg["influx"] = {**defaults["influx"], **(loaded.get("influx", {}) or {})}
+    return cfg
+
+
+def _resolve_backend(name: str) -> int:
+    backend_map = {
+        "auto": cv2.CAP_ANY,
+        "msmf": cv2.CAP_MSMF,
+        "dshow": cv2.CAP_DSHOW,
+        "v4l2": cv2.CAP_V4L2,
+        "gstreamer": cv2.CAP_GSTREAMER,
+    }
+    return backend_map.get(str(name).lower(), cv2.CAP_ANY)
 
 if __name__ == "__main__":
     cfg     = load_cfg()
@@ -67,24 +85,33 @@ if __name__ == "__main__":
     imgsz   = int(cfg.get("imgsz", 320))      
     conf_th = float(cfg.get("conf", 0.25))    
     iou_th  = float(cfg.get("iou", 0.5))
+    target_class = str(cfg.get("target_class", "sports ball"))
+    camera_backend_name = str(cfg.get("camera_backend", "auto"))
+    camera_backend = _resolve_backend(camera_backend_name)
     influx_cfg = cfg.get("influx", {}) or {}
     influx_client = None
     if influx_cfg.get("enabled"):
-        influx_client = InfluxLineClient(
-            url=influx_cfg.get("url", "http://localhost:8086"),
-            org=influx_cfg.get("org", "example-org"),
-            bucket=influx_cfg.get("bucket", "detections"),
-            token=influx_cfg.get("token", "")
-        )
-        print(f"[i] InfluxDB aktiviert: {influx_cfg.get('url')} | bucket={influx_cfg.get('bucket')} | org={influx_cfg.get('org')}")
+        influx_token = os.getenv("INFLUX_TOKEN", influx_cfg.get("token", ""))
+        if not influx_token:
+            print("[WARN] Influx ist aktiviert, aber kein Token konfiguriert. Logging wird deaktiviert.")
+        else:
+            influx_client = InfluxLineClient(
+                url=influx_cfg.get("url", "http://localhost:8086"),
+                org=influx_cfg.get("org", "example-org"),
+                bucket=influx_cfg.get("bucket", "detections"),
+                token=influx_token
+            )
+            print(f"[i] InfluxDB aktiviert: {influx_cfg.get('url')} | bucket={influx_cfg.get('bucket')} | org={influx_cfg.get('org')}")
+            if os.getenv("INFLUX_TOKEN"):
+                print("[i] Influx Token wurde aus Umgebungsvariable INFLUX_TOKEN geladen.")
 
     model_path = os.path.join("models", "yolov8n.onnx")
-    print(f"[i] Lade Modell: {model_path} | imgsz={imgsz} conf={conf_th} iou={iou_th}")
-    det = YoloOnnxDetector(model_path, imgsz=imgsz, conf_thres=conf_th, iou_thres=iou_th)
+    print(f"[i] Lade Modell: {model_path} | imgsz={imgsz} conf={conf_th} iou={iou_th} target_class={target_class}")
+    det = YoloOnnxDetector(model_path, imgsz=imgsz, conf_thres=conf_th, iou_thres=iou_th, target_class=target_class)
 
     # Kamera öffnen
-    print(f"[i] Öffne Kamera {cam_id} (MSMF) ...")
-    cap = cv2.VideoCapture(cam_id, cv2.CAP_MSMF)
+    print(f"[i] Öffne Kamera {cam_id} (backend={camera_backend_name}) ...")
+    cap = cv2.VideoCapture(cam_id, camera_backend)
     if not cap.isOpened():
         sys.exit(f"[ERR] Kamera {cam_id} nicht verfügbar.")
 

@@ -2,6 +2,8 @@ camera_id: 1
 imgsz: 640
 conf: 0.25
 iou: 0.5
+camera_backend: auto
+target_class: sports ball
 mqtt:
   host: 127.0.0.1
   port: 1883
@@ -12,4 +14,4 @@ influx:
   url: http://localhost:8086
   org: Berufskolleg
   bucket: Tracking
-  token: GprehYHp08uV2wSBIDtHYz68zpk2TBiMdy4_J1pJtYke04FaPN0rttkSKb-okHV3A1MfG8SM2qc9_0I0c9bHEA==
+  token: ""   # Empfehlung: leer lassen und stattdessen INFLUX_TOKEN als Umgebungsvariable setzen
